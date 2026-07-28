@@ -6,13 +6,13 @@ Production-ready SaaS platform for AI-powered voice agents, calling automation, 
 
 ## Tech Stack
 
-| Layer | Technologies |
-|-------|-------------|
+| Layer | Technologies                                                                                      |
+|-------|---------------------------------------------------------------------------------------------------|
 | Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS, Shadcn UI, Framer Motion, TanStack Query, Zustand |
-| Backend | Node.js, Express.js, TypeScript, Prisma, PostgreSQL, Redis, BullMQ, Socket.io |
-| AI | OpenAI, LangChain, LangGraph, ElevenLabs, Deepgram, Twilio |
-| Auth | JWT, Refresh Tokens, RBAC |
-| Deploy | Docker, GitHub Actions, Railway, Vercel |
+| Backend | Node.js, Express.js, TypeScript, Prisma, PostgreSQL, Redis, BullMQ, Socket.io                     |
+| AI | OpenAI, LangChain, LangGraph, ElevenLabs, Deepgram, Twilio                                        |
+| Auth | JWT, Refresh Tokens, RBAC                                                                         |
+| Deploy | Docker, GitHub Actions, Render, Vercel                                                            |
 
 ## Project Structure
 
