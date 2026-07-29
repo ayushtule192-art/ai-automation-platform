@@ -1,0 +1,277 @@
+// Prisma schema — AI Automation Platform
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum CallStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+  CLOSED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  FUNCTION
+}
+
+enum ServiceCategory {
+  VOICE_AGENT
+  CALLING_AGENT
+  CHAT_AGENT
+  LEAD_GENERATION
+  CUSTOMER_SUPPORT
+  APPOINTMENT_BOOKING
+  WORKFLOW_AUTOMATION
+  AI_SALES_ASSISTANT
+}
+
+enum AnalyticsEventType {
+  AI_REQUEST
+  VOICE_SESSION
+  CALL_COMPLETED
+  CHAT_MESSAGE
+  ORDER_CREATED
+  USER_SIGNUP
+}
+
+// ─── Auth & Users ────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  role          UserRole  @default(USER)
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  avatarUrl     String?   @map("avatar_url")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  refreshTokens  RefreshToken[]
+  orders         Order[]
+  customers      Customer[]
+  calls          Call[]
+  conversations  Conversation[]
+  analyticsEvents AnalyticsEvent[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+  userAgent String?  @map("user_agent")
+  ipAddress String?  @map("ip_address")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([token])
+  @@map("password_reset_tokens")
+}
+
+// ─── Services & Orders ───────────────────────────────────────────────────────
+
+model Service {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  title       String
+  description String          @db.Text
+  category    ServiceCategory
+  features    String[]
+  priceMonthly Decimal        @map("price_monthly") @db.Decimal(10, 2)
+  priceYearly  Decimal?       @map("price_yearly") @db.Decimal(10, 2)
+  isActive    Boolean         @default(true) @map("is_active")
+  sortOrder   Int             @default(0) @map("sort_order")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  orders Order[]
+
+  @@index([slug])
+  @@index([category])
+  @@map("services")
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  serviceId   String      @map("service_id")
+  status      OrderStatus @default(PENDING)
+  amount      Decimal     @db.Decimal(10, 2)
+  currency    String      @default("USD")
+  startsAt    DateTime?   @map("starts_at")
+  endsAt      DateTime?   @map("ends_at")
+  metadata    Json?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@index([userId])
+  @@index([serviceId])
+  @@index([status])
+  @@map("orders")
+}
+
+// ─── Customers ───────────────────────────────────────────────────────────────
+
+model Customer {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  notes     String?  @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calls Call[]
+
+  @@index([userId])
+  @@index([email])
+  @@index([phone])
+  @@map("customers")
+}
+
+// ─── Calls (Calling Agent) ───────────────────────────────────────────────────
+
+model Call {
+  id           String     @id @default(cuid())
+  userId       String     @map("user_id")
+  customerId   String?    @map("customer_id")
+  twilioCallSid String?   @unique @map("twilio_call_sid")
+  phoneNumber  String     @map("phone_number")
+  status       CallStatus @default(SCHEDULED)
+  scheduledAt  DateTime?  @map("scheduled_at")
+  startedAt    DateTime?  @map("started_at")
+  endedAt      DateTime?  @map("ended_at")
+  duration     Int?       // seconds
+  transcript   String?    @db.Text
+  summary      String?    @db.Text
+  recordingUrl String?    @map("recording_url")
+  metadata     Json?
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([customerId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("calls")
+}
+
+// ─── Chat (Chat Agent) ───────────────────────────────────────────────────────
+
+model Conversation {
+  id        String             @id @default(cuid())
+  userId    String             @map("user_id")
+  title     String?
+  status    ConversationStatus @default(ACTIVE)
+  agentType String             @default("chat") @map("agent_type")
+  metadata  Json?
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("conversations")
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String      @map("conversation_id")
+  role           MessageRole
+  content        String      @db.Text
+  toolCalls      Json?       @map("tool_calls")
+  tokenCount     Int?        @map("token_count")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+model AnalyticsEvent {
+  id        String             @id @default(cuid())
+  userId    String?            @map("user_id")
+  eventType AnalyticsEventType @map("event_type")
+  payload   Json?
+  tokensUsed Int?              @map("tokens_used")
+  costUsd   Decimal?           @map("cost_usd") @db.Decimal(10, 6)
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
