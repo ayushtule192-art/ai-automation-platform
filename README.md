@@ -12,7 +12,7 @@ Production-ready SaaS platform for AI-powered voice agents, calling automation, 
 | Backend | Node.js, Express.js, TypeScript, Prisma, PostgreSQL, Redis, BullMQ, Socket.io |
 | AI | OpenAI, LangChain, LangGraph, ElevenLabs, Deepgram, Twilio |
 | Auth | JWT, Refresh Tokens, RBAC |
-| Deploy | Docker, GitHub Actions, Railway, Vercel |
+| Deploy | Docker, GitHub Actions, Render |
 
 ## Project Structure
 
