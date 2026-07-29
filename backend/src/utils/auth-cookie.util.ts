@@ -8,7 +8,7 @@ function getCookieOptions(maxAge?: number): CookieOptions {
   return {
     httpOnly: true,
     secure: appConfig.isProduction,
-    sameSite: appConfig.isProduction ? "strict" : "lax",
+    sameSite: appConfig.isProduction ? "none" : "lax",
     path: "/",
     maxAge: maxAge ?? REFRESH_COOKIE_MAX_AGE_MS,
   };
@@ -23,7 +23,7 @@ export function clearRefreshTokenCookie(res: Response): void {
   res.clearCookie(jwtConfig.refreshTokenCookieName, {
     httpOnly: true,
     secure: appConfig.isProduction,
-    sameSite: appConfig.isProduction ? "strict" : "lax",
+    sameSite: appConfig.isProduction ? "none" : "lax",
     path: "/",
   });
 }
